@@ -526,22 +526,50 @@
     </a>
 
 
+    <button id="hs-chat-open" aria-label="Open chat">💬</button>
+
     <iframe
-    src="https://chatbot-s-ten.vercel.app/embed?tenant=demo_business_showroom"
-    title="Support chat"
-    style="
-      position: fixed;
-      bottom: 16px;
-      right: 16px;
-      width: min(420px, calc(100vw - 16px));
-      height: min(90vh, 640px);
-      border: 0;
-      border-radius: 16px;
-      background: transparent;
-      z-index: 999999;
-    "
-    allow="clipboard-write; camera; microphone"
-  ></iframe>
+      id="hs-chat-iframe"
+      src="https://chatbot-s-ten.vercel.app/embed?tenant=demo_business_showroom"
+      title="Support chat"
+      allow="clipboard-write; camera; microphone"
+    ></iframe>
+    
+    <style>
+      #hs-chat-open{
+        position:fixed;right:16px;bottom:16px;width:64px;height:64px;border:0;border-radius:9999px;
+        background:#0ea5e9;color:#fff;font-size:26px;cursor:pointer;z-index:999999;
+        box-shadow:0 10px 30px rgba(2,132,199,.35);
+      }
+      #hs-chat-iframe{
+        position:fixed;right:16px;bottom:16px;width:min(420px,calc(100vw - 16px));
+        height:min(90vh,640px);border:0;border-radius:16px;background:transparent;z-index:999998;
+        display:none;
+      }
+      #hs-chat-iframe.hs-open{display:block;}
+      #hs-chat-open.hs-hidden{display:none;}
+    </style>
+    
+    <script>
+    (() => {
+      const btn = document.getElementById('hs-chat-open');
+      const frame = document.getElementById('hs-chat-iframe');
+      if (!btn || !frame) return;
+    
+      btn.addEventListener('click', () => {
+        frame.classList.add('hs-open');
+        btn.classList.add('hs-hidden');
+      });
+    
+      // Optional: close when user presses ESC
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          frame.classList.remove('hs-open');
+          btn.classList.remove('hs-hidden');
+        }
+      });
+    })();
+    </script>
 
   </body>
 </html>
