@@ -529,15 +529,12 @@
       (function () {
         var APP_ORIGIN = "https://chatbot-s-ten.vercel.app";
         var TENANT_ID = "demo_business_showroom";
+        var Z = 2147483000;
       
-        var Z_BASE = 2147483000;
-        var MODE = "bubble"; // bubble | chat | dashboard
-        var OPEN = false;
+        var isOpen = false;
+        var isDashboard = false;
       
-        var panel = null;
-        var iframe = null;
-      
-        // ---------------- Launcher (branded bubble) ----------------
+        // ---------- launcher bubble (NO blue chat circle) ----------
         var launcher = document.createElement("button");
         launcher.type = "button";
         launcher.setAttribute("aria-label", "Open support chat");
@@ -546,7 +543,7 @@
           "position:fixed",
           "right:16px",
           "bottom:16px",
-          "z-index:" + Z_BASE,
+          "z-index:" + Z,
           "width:72px",
           "height:72px",
           "border-radius:9999px",
@@ -576,66 +573,57 @@
         launcherInner.textContent = "Chat";
         launcher.appendChild(launcherInner);
       
-        function ensurePanel() {
-          if (panel) return;
+        // ---------- iframe panel ----------
+        var panel = document.createElement("div");
+        panel.style.cssText = [
+          "position:fixed",
+          "right:8px",
+          "bottom:8px",
+          "z-index:" + (Z + 1),
+          "width:min(440px, calc(100vw - 16px))",
+          "height:min(720px, calc(100vh - 16px))",
+          "border-radius:16px",
+          "overflow:hidden",
+          "background:#fff",
+          "border:1px solid rgba(148,163,184,.45)",
+          "box-shadow:0 18px 50px rgba(15,23,42,.25)",
+          "opacity:0",
+          "visibility:hidden",
+          "pointer-events:none",
+          "transform:translateY(12px) scale(.98)",
+          "transform-origin:bottom right",
+          "transition:width .2s ease,height .2s ease,opacity .2s ease,transform .2s ease,visibility .2s ease"
+        ].join(";");
       
-          panel = document.createElement("div");
-          panel.style.cssText = [
-            "position:fixed",
-            "right:8px",
-            "bottom:8px",
-            "z-index:" + (Z_BASE + 1),
-            "opacity:0",
-            "visibility:hidden",
-            "pointer-events:none",
-            "transform:translateY(12px) scale(.98)",
-            "transform-origin:bottom right",
-            "overflow:hidden",
-            "border-radius:16px",
-            "background:#fff",
-            "border:1px solid rgba(148,163,184,.45)",
-            "box-shadow:0 18px 50px rgba(15,23,42,.25)",
-            "transition:width .18s ease,height .18s ease,opacity .18s ease,transform .18s ease,visibility .18s ease"
-          ].join(";");
+        var iframe = document.createElement("iframe");
+        iframe.title = "Support chat";
+        iframe.referrerPolicy = "strict-origin-when-cross-origin";
+        iframe.allow = "clipboard-write";
+        iframe.src = APP_ORIGIN + "/?p=cus&tenant=" + encodeURIComponent(TENANT_ID);
+        iframe.style.cssText = "width:100%;height:100%;border:0;display:block;background:transparent;";
+        panel.appendChild(iframe);
       
-          iframe = document.createElement("iframe");
-          iframe.title = "Support chat";
-          iframe.referrerPolicy = "strict-origin-when-cross-origin";
-          iframe.allow = "clipboard-write";
-          iframe.src = APP_ORIGIN + "/?p=cus&tenant=" + encodeURIComponent(TENANT_ID);
-          iframe.style.cssText = "width:100%;height:100%;border:0;display:block;background:transparent;";
-      
-          panel.appendChild(iframe);
-          document.body.appendChild(panel);
-          applyModeSize();
-        }
-      
-        function applyModeSize() {
-          if (!panel) return;
-      
-          if (MODE === "dashboard") {
-            panel.style.width = "min(1180px, calc(100vw - 24px))";
-            panel.style.height = "min(860px, calc(100vh - 24px))";
-            panel.style.right = "12px";
-            panel.style.bottom = "12px";
-            panel.style.borderRadius = "14px";
-            return;
+        function applySize() {
+          if (isDashboard) {
+            panel.style.width = "calc(100vw - 16px)";
+            panel.style.height = "calc(100vh - 16px)";
+            panel.style.right = "8px";
+            panel.style.bottom = "8px";
+            panel.style.borderRadius = "12px";
+          } else {
+            panel.style.width = "min(440px, calc(100vw - 16px))";
+            panel.style.height = "min(720px, calc(100vh - 16px))";
+            panel.style.right = "8px";
+            panel.style.bottom = "8px";
+            panel.style.borderRadius = "16px";
           }
-      
-          // chat mode
-          panel.style.width = "min(440px, calc(100vw - 16px))";
-          panel.style.height = "min(720px, calc(100vh - 16px))";
-          panel.style.right = "8px";
-          panel.style.bottom = "8px";
-          panel.style.borderRadius = "16px";
         }
       
-        function setOpen(nextOpen) {
-          ensurePanel();
-          OPEN = !!nextOpen;
-          launcher.setAttribute("aria-expanded", OPEN ? "true" : "false");
+        function setOpen(next) {
+          isOpen = !!next;
+          launcher.setAttribute("aria-expanded", isOpen ? "true" : "false");
       
-          if (OPEN) {
+          if (isOpen) {
             launcher.style.opacity = "0";
             launcher.style.transform = "scale(.92)";
             launcher.style.pointerEvents = "none";
@@ -645,13 +633,13 @@
             panel.style.opacity = "1";
             panel.style.transform = "translateY(0) scale(1)";
           } else {
-            MODE = "bubble";
-            applyModeSize();
+            isDashboard = false;
+            applySize();
       
             panel.style.opacity = "0";
-            panel.style.transform = "translateY(12px) scale(.98)";
-            panel.style.pointerEvents = "none";
             panel.style.visibility = "hidden";
+            panel.style.pointerEvents = "none";
+            panel.style.transform = "translateY(12px) scale(.98)";
       
             launcher.style.opacity = "1";
             launcher.style.transform = "scale(1)";
@@ -660,16 +648,22 @@
         }
       
         launcher.addEventListener("click", function () {
-          MODE = "chat";
-          applyModeSize();
+          isDashboard = false;
+          applySize();
           setOpen(true);
         });
       
+        // ESC closes iframe
         window.addEventListener("keydown", function (e) {
-          if (e.key === "Escape" && OPEN) setOpen(false);
+          if (e.key === "Escape" && isOpen) setOpen(false);
+          // fallback manual dashboard size toggle (if app cannot signal parent)
+          if (e.shiftKey && (e.key === "D" || e.key === "d") && isOpen) {
+            isDashboard = !isDashboard;
+            applySize();
+          }
         });
       
-        // ---- Sync with app runtime (if/when runtime posts these messages) ----
+        // Auto sync (works ONLY if app sends these messages)
         window.addEventListener("message", function (event) {
           if (event.origin !== APP_ORIGIN) return;
           var data = event.data || {};
@@ -679,15 +673,14 @@
             return;
           }
       
-          // Expected payload: { type:"hybrid_embed_resize", mode:"bubble"|"panel"|"dashboard" }
           if (data.type === "hybrid_embed_resize") {
             if (data.mode === "dashboard") {
-              MODE = "dashboard";
-              applyModeSize();
+              isDashboard = true;
+              applySize();
               setOpen(true);
             } else if (data.mode === "panel" || data.mode === "chat") {
-              MODE = "chat";
-              applyModeSize();
+              isDashboard = false;
+              applySize();
               setOpen(true);
             } else if (data.mode === "bubble") {
               setOpen(false);
@@ -695,12 +688,11 @@
           }
         });
       
-        // ---- Brand the launcher bubble from tenant config ----
+        // Bubble branding from tenant config
         fetch(APP_ORIGIN + "/api/widget-config?tenant=" + encodeURIComponent(TENANT_ID))
           .then(function (r) { return r.ok ? r.json() : null; })
           .then(function (cfg) {
             if (!cfg) return;
-      
             var primary = (cfg.primaryColor || cfg.bubbleButtonColor || "").trim();
             if (primary) launcher.style.background = primary;
       
@@ -716,6 +708,7 @@
           .catch(function () {});
       
         document.body.appendChild(launcher);
+        document.body.appendChild(panel);
       })();
       </script>
   
